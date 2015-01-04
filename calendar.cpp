@@ -10,14 +10,12 @@ class Pantalla
 		virtual void imprimir_todo(void) = 0;
 		virtual void imprimir_linea(int linea) = 0;
 };
- 
 
 class PantallaMensual : public Pantalla
 {
 	private:
 		int month;
 		int year;
-
 
 		int get_posicion_zeller(int day, int month, int year) {
 			int a, y, m;
@@ -28,7 +26,11 @@ class PantallaMensual : public Pantalla
 		return ((day + y + y/4 - y/100 + y/400 + (31*m) / 12) %7);
 		}
 
-		int from_dia_semana_to_pos(int dia, int dia_semana) {
+		/* Devuelve la posición donde debe emepzar a imprimirse el primer caracter de un día
+			dado el día de la semana.
+			La posición está calculada en un calendario de mes de 6x26 caracteres (ver enunciado)
+		*/
+		int from_dia_semana_to_pos(int dia_semana) {
 			int pos;
 
 			// Calculamos la posición del caracter donde debe imprimirse el primer dígito del día
@@ -46,44 +48,76 @@ class PantallaMensual : public Pantalla
 			return pos;
 		}
 
+		/* Devuelve >0 si es una posición donde debe imprimirse ',' según el enunciado.
+			La posición está calculada en un calendario de mes de 6x26 caracteres (ver enunciado)
+		*/
 		int es_punto(int pos) {
 			if(pos == 1|| pos==4 || pos == 7 || pos == 10 || pos==13|| pos==18 || pos==21)
 				return 1;
 			return 0;
 		}
+
 	public:
 		PantallaMensual(int month, int year) {
 
 			int dia;
 			int dia_semana, i, j, col, fila, total_semanas;
-			// char pantalla[6][23];
 			char buff[2];
 
+			sprintf (pantalla[0], "                         ");  
+			switch (month) {
+      
+				case 1:  sprintf (pantalla[1], "ENERO             %d   ", year);
+					break;
+				case 2:  sprintf (pantalla[1], "FEBRERO           %d   ", year);
+					break;
+				case 3:  sprintf (pantalla[1], "MARZO             %d   ", year);
+					break;
+				case 4:  sprintf (pantalla[1], "ABRIL             %d   ", year);
+					break;
+				case 5:  sprintf (pantalla[1], "MAYO              %d   ", year);
+					break;
+				case 6:  sprintf (pantalla[1], "JUNIO             %d   ", year);
+					break;
+				case 7:  sprintf (pantalla[1], "JULIO             %d   ", year);
+					break;
+				case 8:  sprintf (pantalla[1], "AGOSTO            %d   ", year);
+					break;
+				case 9:  sprintf (pantalla[1], "SEPTIEMBRE        %d   ", year);
+					break;
+				case 10: sprintf (pantalla[1], "OCTUBRE           %d   ", year);
+					break;
+				case 11: sprintf (pantalla[1], "NOVIEMBRE         %d   ", year);
+					break;
+				default: sprintf (pantalla[1], "DICIEMBRE         %d   ", year);  
+			}//switch
+
+			/*Dibujar la estructura del calendario*/
+			sprintf (pantalla[2], "======================   ");  
+      		sprintf (pantalla[3], "LU MA MI JU VI | SA DO   ");
+			sprintf (pantalla[4], "======================   ");  
+
 			// Rellenamos todos los días con blanco o con punto si es la posición del dígito
-			for(i=0;i<6;i++)
-				for(j=0;j<23;j++) {
-				if(es_punto(j))
-					pantalla[i][j] = '.';
-				else
-					pantalla[i][j] = ' ';
-			}
+			for(i=5; i<11; i++)
+				for(j=0; j<23+2; j++) {
+					if(es_punto(j))
+						pantalla[i][j] = '.';
+					else
+						pantalla[i][j] = ' ';
+				}
 
 			// Colocamos los separadores de fin de semana
-			for(i=0;i<6;i++)
+			for(i=5; i<11;i ++)
 				pantalla[i][15] = '|';
 
 			// Rellenamos los dias dentro del calendario
-			fila = 0;
-			for(dia=1;dia<32;dia++) {
+			fila = 5;
+			for(dia=1; dia<=31; dia++) {
 
 				dia_semana = get_posicion_zeller(dia, month, year);
 
 				// Calculamos la columna en la matriz
-				col = from_dia_semana_to_pos(dia, dia_semana);
-
-				// printf("fila %d col %d dia %d diasem %d \n", fila, col, dia, dia_semana);
-
-				// Saltar bisiestos y dias 31 en meses de 20
+				col = from_dia_semana_to_pos(dia_semana);
 
 				sprintf(buff, "%2d", dia);
 				if(dia>=10) {
@@ -93,14 +127,15 @@ class PantallaMensual : public Pantalla
 						No es el día 31 y es un mes de < 31 dias
 						No es dia 29 y no siendo año bisiesto (BUG1 : no funciona. probar con 2014)
 					*/
-					if( (!(dia==30 && month == 2)) &&
-						(!(dia==31 && (month == 2 || month==4 || month==6 || month==9 || month==11))) &&
-						(!(dia==29 && month ==2 && (year%4==0 && year%100!=0 || year%400==0))) ) {
+					if(dia==30 && month == 2)
+						break;
+					if(dia==31 && (month == 2 || month==4 || month==6 || month==9 || month==11))
+						break;
+					if(dia==29 && month == 2 && !(year%4==0 && year%100!=0 || year%400==0))
+						break;
 
-
-						pantalla[fila][col] = buff[0];
-						pantalla[fila][col+1] = buff[1];
-					}
+					pantalla[fila][col] = buff[0];
+					pantalla[fila][col+1] = buff[1];
 				} else
 					pantalla[fila][col+1] = buff[1];
 
@@ -112,8 +147,18 @@ class PantallaMensual : public Pantalla
 			}
 
 			// Dejamos calculadas las filas y columnas que ocupa el mes
-			filas = fila+1;
-			columnas = 23;
+			// if(fila<10)
+			// 	fila++;
+
+			// Quitamos la linea de puntos si no tiene ningún dia
+			if(pantalla[fila][1]=='.') {
+				sprintf(pantalla[fila], "                         "); 
+			}
+			
+			columnas = 23 + 3; // Añadimos 3 para los tres espacios requiridos entre dos meses
+			filas = fila;
+
+			printf("fila %d columna %d mes %d\n", filas, columnas, month);
         }
 
 		void imprimir_todo() {
@@ -157,17 +202,14 @@ class CalendarioMensual {
 		}
 
 		void imprime() {
-
 			for(int i=0; i<filas;i++) {
-				for(int semana=0; semana<6; semana++) {
+			for(int semana=0; semana<11; semana++) {
 					for(int j=0; j<columnas;j++) {
 						pantalla_meses[i][j]->imprimir_linea(semana);
-						printf("   ");
 					}
 					printf("\n");
 				}
 			}
-			
 		}
 };
  
