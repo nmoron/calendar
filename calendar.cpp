@@ -114,10 +114,13 @@ class PantallaMensual : public Pantalla
 			fila = 5;
 			for(dia=1; dia<=31; dia++) {
 
+
 				dia_semana = get_posicion_zeller(dia, month, year);
+
 
 				// Calculamos la columna en la matriz
 				col = from_dia_semana_to_pos(dia_semana);
+
 
 				sprintf(buff, "%2d", dia);
 				if(dia>=10) {
@@ -125,7 +128,7 @@ class PantallaMensual : public Pantalla
 					/* 
 						No es dia 30 y es Febrero
 						No es el día 31 y es un mes de < 31 dias
-						No es dia 29 y no siendo año bisiesto (BUG1 : no funciona. probar con 2014)
+						No es dia 29 y no siendo año bisiesto
 					*/
 					if(dia==30 && month == 2)
 						break;
@@ -139,23 +142,24 @@ class PantallaMensual : public Pantalla
 				} else
 					pantalla[fila][col+1] = buff[1];
 
+				printf("mes %d dia %d dia_semana %d (col %d fila %d)\n", month, dia, dia_semana, col, fila);
+
 				// Por cada domingo encontrado, cambiamos de semana (pasamos a la siguiente fila)
 				if(!dia_semana) {
 					fila++;
 				}
-
 			}
 
 			// Dejamos calculadas las filas y columnas que ocupa el mes
-			// if(fila<10)
-			// 	fila++;
+			if(dia_semana)
+				fila++;
 
 			// Quitamos la linea de puntos si no tiene ningún dia
 			if(pantalla[fila][1]=='.') {
 				sprintf(pantalla[fila], "                         "); 
 			}
 			
-			columnas = 23 + 3; // Añadimos 3 para los tres espacios requiridos entre dos meses
+			columnas = 23 + 2; // Añadimos 3 para los tres espacios requiridos entre dos meses
 			filas = fila;
 
 			printf("fila %d columna %d mes %d\n", filas, columnas, month);
@@ -221,7 +225,7 @@ class Principal
 	public:
 
 		// Constructor
-		Principal(int month, int year) {
+		Principal(int year) {
 			this->caledario_mensual = new CalendarioMensual(4, 3, year);
 		}
 
@@ -233,19 +237,18 @@ class Principal
 
 int main()
 {
-	int year, month;
+	int year;
 
 	/* Solicitamos el año dentro de los que marca el enunciado*/
-	printf ("Mes (1...12)?");
-	scanf ("%d", &month);
 	printf ("A\xa4o (1601...3000)?");
-	scanf ("%d", &year);
+// 	scanf ("%d", &year);
+	year = 2014;
 	if (year<1601 || year>3000) {
     	printf ("Los valores introducidos no son correctos\n");
 		return -1;
 	}
 
-	Principal* principal = new Principal(month, year);
+	Principal* principal = new Principal(year);
 	principal->imprime();
 	// delete &principal;
 
