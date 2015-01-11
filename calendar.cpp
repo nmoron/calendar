@@ -11,6 +11,39 @@ class Pantalla
 		virtual void imprimir_linea(int linea) = 0;
 };
 
+class PantallaAnual : public Pantalla
+{
+	private:
+		int year;
+
+	public:
+		PantallaAnual(int year) {
+			this-> year;
+			this->columnas = 1;
+			this->filas = 80;
+			for(int i=0; i<this->filas; i++)
+				pantalla[i][0] = '\n';
+		}
+
+		void imprimir_todo() {
+			int i,j;
+
+			for(i=0;i<filas;i++) {
+				for(j=0;j<columnas;j++)
+					printf("%c", pantalla[i][j]);
+				printf("\n");
+			}
+		}
+
+		void imprimir_linea(int linea) {
+
+			if(linea>filas) return;
+
+			for(int j=0; j<columnas; j++)
+				printf("%c", pantalla[linea][j]);
+		}
+};
+
 class PantallaMensual : public Pantalla
 {
 	private:
@@ -114,35 +147,32 @@ class PantallaMensual : public Pantalla
 			fila = 5;
 			for(dia=1; dia<=31; dia++) {
 
-
-				dia_semana = get_posicion_zeller(dia, month, year);
-
+				/* Excepciones (final de mes):
+					No es dia 30 y es Febrero
+					No es el día 31 y es un mes de < 31 dias
+					No es dia 29 y no siendo año bisiesto
+				*/
+				if(dia==30 && month == 2)
+					break;
+				if(dia==31 && (month == 2 || month==4 || month==6 || month==9 || month==11))
+					break;
+				if(dia==29 && month == 2 && !(year%4==0 && year%100!=0 || year%400==0))
+					break;
 
 				// Calculamos la columna en la matriz
+				dia_semana = get_posicion_zeller(dia, month, year);
 				col = from_dia_semana_to_pos(dia_semana);
 
-
+				// Guardamos los caracteres del dia en la pantalla
 				sprintf(buff, "%2d", dia);
 				if(dia>=10) {
-
-					/* 
-						No es dia 30 y es Febrero
-						No es el día 31 y es un mes de < 31 dias
-						No es dia 29 y no siendo año bisiesto
-					*/
-					if(dia==30 && month == 2)
-						break;
-					if(dia==31 && (month == 2 || month==4 || month==6 || month==9 || month==11))
-						break;
-					if(dia==29 && month == 2 && !(year%4==0 && year%100!=0 || year%400==0))
-						break;
 
 					pantalla[fila][col] = buff[0];
 					pantalla[fila][col+1] = buff[1];
 				} else
 					pantalla[fila][col+1] = buff[1];
 
-				printf("mes %d dia %d dia_semana %d (col %d fila %d)\n", month, dia, dia_semana, col, fila);
+				// printf("mes %d dia %d dia_semana %d (col %d fila %d)\n", month, dia, dia_semana, col, fila);
 
 				// Por cada domingo encontrado, cambiamos de semana (pasamos a la siguiente fila)
 				if(!dia_semana) {
@@ -154,7 +184,7 @@ class PantallaMensual : public Pantalla
 			if(dia_semana)
 				fila++;
 
-			// Quitamos la linea de puntos si no tiene ningún dia
+			// Quitamos la última linea de puntos si no tiene ningún dia en ella
 			if(pantalla[fila][1]=='.') {
 				sprintf(pantalla[fila], "                         "); 
 			}
@@ -162,7 +192,7 @@ class PantallaMensual : public Pantalla
 			columnas = 23 + 2; // Añadimos 3 para los tres espacios requiridos entre dos meses
 			filas = fila;
 
-			printf("fila %d columna %d mes %d\n", filas, columnas, month);
+			// printf("fila %d columna %d mes %d\n", filas, columnas, month);
         }
 
 		void imprimir_todo() {
@@ -185,33 +215,74 @@ class PantallaMensual : public Pantalla
 
 };
 
+
 class CalendarioMensual {
 
 	private:
 		int filas;
 		int columnas;
-		PantallaMensual* pantalla_meses[12][12];
+		PantallaMensual* pantalla_mes;
 
 	public:
-		CalendarioMensual(int filas, int columnas, int year) {
+		CalendarioMensual(int month, int year) {
+			this->filas = filas;
+			this->columnas = columnas;
+			this->pantalla_mes = new PantallaMensual(month, year);
+		}
+
+		void imprimir_semana(int semana) {
+			pantalla_mes->imprimir_linea(semana);
+		}
+
+		/*
+		void imprime() {
+			for(int i=0; i<pantalla_mes->filas;i++) {
+				for(int j=0; j<pantalla_mes->columnas;j++) {
+					pantalla_meses.imprimir_linea(semana);
+				}
+				printf("\n");
+			}
+		}
+		*/
+};
+
+
+class CalendarioAnual {
+
+	private:
+		int filas;
+		int columnas;
+		CalendarioMensual* cMeses[12][12];
+		PantallaAnual* pAnual;
+
+	public:
+		CalendarioAnual(int filas, int columnas, int year) {
 			int month = 1;
 			this->filas = filas;
 			this->columnas = columnas;
+
+			// Generamos la pantalla anual
+			this->pAnual = new PantallaAnual(year);
+
+			// Generamos la pantalla para cada uno de los meses
 			for(int i=0; i<filas;i++)
 				for(int j=0; j<columnas;j++) {
-					PantallaMensual * pm = new PantallaMensual(month, year);
-					pantalla_meses[i][j] = pm;
+					CalendarioMensual * cm = new CalendarioMensual(month, year);
+					cMeses[i][j] = cm;
 					month++;
 				}
 		}
 
 		void imprime() {
 			for(int i=0; i<filas;i++) {
-			for(int semana=0; semana<11; semana++) {
+				for(int semana=0; semana<11; semana++) {
+					// Semana de cada mes (columna)
 					for(int j=0; j<columnas;j++) {
-						pantalla_meses[i][j]->imprimir_linea(semana);
+						cMeses[i][j]->imprimir_semana(semana);
 					}
-					printf("\n");
+
+					// Pantalla del calendario para terminar la semana
+					pAnual->imprimir_linea((11*filas)+semana);
 				}
 			}
 		}
@@ -220,18 +291,18 @@ class CalendarioMensual {
 class Principal
 {
 	private:
-		CalendarioMensual* caledario_mensual;
+		CalendarioAnual* cAnual;
 
 	public:
 
 		// Constructor
 		Principal(int year) {
-			this->caledario_mensual = new CalendarioMensual(4, 3, year);
+			this->cAnual = new CalendarioAnual(4, 3, year);
 		}
 
 		// Muestra el calendario
 		void imprime() {
-			caledario_mensual->imprime();
+			cAnual->imprime();
 		}
 };
 
@@ -241,8 +312,7 @@ int main()
 
 	/* Solicitamos el año dentro de los que marca el enunciado*/
 	printf ("A\xa4o (1601...3000)?");
-// 	scanf ("%d", &year);
-	year = 2014;
+ 	scanf ("%d", &year);
 	if (year<1601 || year>3000) {
     	printf ("Los valores introducidos no son correctos\n");
 		return -1;
@@ -251,8 +321,6 @@ int main()
 	Principal* principal = new Principal(year);
 	principal->imprime();
 	// delete &principal;
-
-	// delete pm;
 
 	return 0;
 
